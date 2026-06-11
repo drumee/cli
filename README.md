@@ -56,8 +56,10 @@ drumee settings get <key>
 drumee settings set <key> <value>        # value stored as JSON; requires root
 
 # Meta filesystem (per entity shard)
-drumee mfs ls   --entity <id|email> [--parent <node>] [--type <category>]
-drumee mfs node --entity <id|email> --id <node>
+drumee mfs ls     --entity <id|email> [--parent <node>] [--type <category>]
+drumee mfs node   --entity <id|email> --id <node>
+drumee mfs import --entity <id|email> --src <path> [--parent <node>] [--dest <folder>]
+drumee mfs export --entity <id|email> --dest <dir> [--node <id>]
 ```
 
 Add `--json` to any command for machine-readable output.
@@ -65,7 +67,7 @@ Add `--json` to any command for machine-readable output.
 ## Status (v0.1)
 
 **Implemented:** `user list/get/add/update/delete`, `hub list/get/members/create/delete`,
-`settings list/get/set`, `mfs ls/node`. (`delete` aliases `remove`.)
+`settings list/get/set`, `mfs ls/node/import/export`. (`delete` aliases `remove`.)
 
 `user add` and `hub create` both claim a pre-provisioned entity from the factory
 warm pool — if the pool is empty they report `EMPTY_FACTORY` (start/await the
@@ -80,8 +82,13 @@ Physical deletion is double-guarded: the target directory must lie strictly
 inside `mfs_dir` **and** must contain no other tenant's `home_dir` (checked
 against `yp.entity`), so a purge can never touch another tenant's files.
 
-**Planned:** `mfs import/export`, and the remote `--backend api`. These commands
-exist and report a clear "not implemented yet" message.
+`mfs import` copies a local file/tree into a shard (creating nodes via
+`mfs_create_node` and copying blobs to `<home_dir>/__storage__/<id>/orig.<ext>`);
+`mfs export` walks the shard's `media` table and copies the blobs back out,
+rebuilding the folder hierarchy.
+
+**Planned:** the remote `--backend api`. The `api` backend exists and reports a
+clear "not implemented yet" message.
 
 ## Architecture
 

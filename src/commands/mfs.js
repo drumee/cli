@@ -24,11 +24,18 @@ module.exports = function registerMfs(program, ctx) {
 
   mfs
     .command("import")
-    .description("Import content into a shard (planned)")
+    .description("Import a local file or directory into an entity's MFS")
+    .requiredOption("--entity <key>", "hub/user id or ident (target shard)")
+    .requiredOption("--src <path>", "local file or directory to import")
+    .option("--parent <id>", "parent node id to import under")
+    .option("--dest <path>", "folder path under root (created if needed)")
     .action(ctx.runner((backend, opts) => backend.mfs.import(opts)));
 
   mfs
     .command("export")
-    .description("Export content from a shard (planned)")
+    .description("Export an entity's MFS subtree to a local directory")
+    .requiredOption("--entity <key>", "hub/user id or ident (source shard)")
+    .requiredOption("--dest <dir>", "local destination directory")
+    .option("--node <id>", "node id to export (defaults to the whole MFS root)")
     .action(ctx.runner((backend, opts) => backend.mfs.export(opts)));
 };

@@ -61,7 +61,7 @@ since `home_dir` contains `_`). The check runs as a pre-flight before the
 destructive ops *and* again inside `removeStorage`, so a malformed/empty/ancestor
 `home_dir` can never wipe another tenant.
 | settings | `get_sys_conf`, `sys_conf_set` |
-| mfs | `mfs_list_by` (args: `{pid,type,page,sort,order}`), `mfs_show_node_by(id,uid,params)` |
+| mfs | `mfs_list_by` (args: `{pid,type,page,sort,order}`), `mfs_show_node_by(id,uid,params)`; import: `mfs_home`, `mfs_node_attr`, `mfs_make_dir`, `mfs_create_node` (+ `yp.filecap` lookup); export: read-only walk of the shard `media` table |
 
 `user add` runs `drumate_create(password, profile)` (claims a pooled drumate via
 `pickupEntity`; the proc hashes the password) then seeds default folders with
@@ -84,7 +84,15 @@ pre-provisioned entity available.
 `drumate_change_email`/`_username`/`_mobile`, `drumate_set_lang`, and
 `set_password` (which hashes via `sha2`). At least one field is required.
 
-Planned (not yet wired): MFS import/export, the `api` backend.
+`mfs import`/`export` open a dedicated connection to the entity shard
+(`DbBackend.entityConn(dbName)` → `new Mariadb({name})`, closed in a `finally`)
+because the node-creation procedures depend on the active DB context. Import
+goes through `mfs_create_node` (never raw INSERT) and copies the blob to
+`<home_dir>/__storage__/<id>/orig.<ext>`; export reads the `media` table
+(read-only) and copies blobs back out, rebuilding folders from `user_filename` +
+`extension`.
+
+Planned (not yet wired): the `api` backend.
 
 ## Conventions
 

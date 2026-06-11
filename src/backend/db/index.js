@@ -33,6 +33,7 @@ class DbBackend {
     // Lazy-require so `--help` and arg errors never load server-essentials
     // (which logs runtime/UI probes at require time).
     const { Mariadb, Cache, sysEnv, toArray, uniqueId } = require("@drumee/server-essentials");
+    this.Mariadb = Mariadb;
     this.toArray = toArray;
     this.uniqueId = uniqueId;
     this.Cache = Cache;
@@ -88,6 +89,16 @@ class DbBackend {
     const db = await this.dbName(key);
     if (!db) throw new Error(`Unknown entity: ${key}`);
     return this.yp.await_proc(`${db}.${name}`, ...args);
+  }
+
+  /**
+   * Open a dedicated connection to an entity's shard database. The caller must
+   * `await conn.stop()` when done. Used by MFS import/export, which run
+   * procedures that rely on the active database context (and OUT params).
+   */
+  entityConn(dbName) {
+    if (!this.Mariadb) throw new Error("backend is not connected");
+    return new this.Mariadb({ name: dbName });
   }
 
   /** The recorded storage root (`home_dir`) of an entity, or null. */
