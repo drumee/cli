@@ -35,9 +35,15 @@ No test runner or linter is configured yet.
   - `db/{users,hubs,settings,mfs}.js` — resource stores; each takes the backend and calls
     real stored procedures / lookups (see below).
   - `api/` (`ApiBackend`) — remote service-API backend. `client.js` (`ApiClient`)
-    is the authenticated transport: `POST <host>/-/svc/<module>.<method>`, JSON
-    body, envelope `data`/`error`, `x-param-keysel`/`x-param-<keysel>` session
-    headers (mirrors `@drumee/ui-essentials/socket`). `connect()` builds the
+    is the authenticated transport. It uses Node's **`https` module** (matching
+    `@drumee/server-essentials` `Network.request`, not `fetch`): `POST
+    <base>/<module>.<method>` with `Content-Length`, GET carries the payload in
+    the query, response `data` is unwrapped. Adds the CLI-specific in-body error
+    handling (Drumee signals errors as **HTTP 200 with a string `error` + `reason`
+    + `error_code`**). Auth via `x-param-keysel`/`x-param-<keysel>` session
+    headers (mirrors `ui-essentials/socket`). The endpoint base is multi-tenant —
+    `https://<host>/-/<endpoint>/svc/` — and `normalizeBase` appends `svc/`.
+    `_request()` is overridable for tests. `connect()` builds the
     client from `--host`/`--token` → `DRUMEE_HOST`/`DRUMEE_TOKEN` → the cached
     login (`src/lib/config.js`, `~/.config/drumee/cli.json`). Per-resource methods
     currently report "not yet implemented over --backend api" (a `Proxy` stub)

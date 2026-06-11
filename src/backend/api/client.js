@@ -68,43 +68,73 @@ class ApiClient {
       opts.authorization ? { Authorization: opts.authorization } : {}
     );
 
-    const init = { method, headers };
+    let body;
     if (method === "GET") {
-      // token-as-accessToken channel for GET (share/one-time style)
-      if (this.token) url += `?accessToken=${encodeURIComponent(this.token)}`;
+      // GET carries the payload in the query (mirrors Network.request), and the
+      // token via the accessToken channel.
+      const parts = [];
+      if (this.token) parts.push(`accessToken=${encodeURIComponent(this.token)}`);
+      if (payload && Object.keys(payload).length) {
+        parts.push(encodeURI(JSON.stringify(payload)));
+      }
+      if (parts.length) url += `?${parts.join("&")}`;
     } else {
-      init.body = JSON.stringify(payload);
+      body = JSON.stringify(payload);
+      headers["Content-Length"] = Buffer.byteLength(body);
     }
 
     if (this.verbose) process.stderr.write(`→ ${method} ${url}\n`);
 
-    const res = await fetch(url, init);
-    let body = null;
-    try {
-      body = await res.json();
-    } catch (_) {
-      /* non-JSON or empty body */
-    }
+    const { status, json } = await this._request(url, { method, headers, body });
 
     // Errors arrive either as a non-200 status, or (commonly) as HTTP 200 with a
     // top-level `error` string plus `reason`/`error_code` in the envelope.
     const errored =
-      res.status >= 400 ||
-      (body && (body.error || (body.status && body.status >= 400)));
+      status >= 400 || (json && (json.error || (json.status && json.status >= 400)));
     if (errored) {
       const base =
-        (body &&
-          (typeof body.error === "string"
-            ? body.error
-            : body.error?.message || body.message)) ||
-        `HTTP ${res.status}`;
-      const reason = body && body.reason ? ` (${body.reason})` : "";
+        (json &&
+          (typeof json.error === "string"
+            ? json.error
+            : json.error?.message || json.message)) ||
+        `HTTP ${status}`;
+      const reason = json && json.reason ? ` (${json.reason})` : "";
       const err = new Error(`${base}${reason}`);
-      err.status = (body && (body.error_code || body.status)) || res.status;
-      err.body = body;
+      err.status = (json && (json.error_code || json.status)) || status;
+      err.body = json;
       throw err;
     }
-    return body && body.data !== undefined ? body.data : body;
+    return json && json.data !== undefined ? json.data : json;
+  }
+
+  /**
+   * Perform the HTTP request via Node's `https` module — the same transport
+   * Drumee uses in `@drumee/server-essentials` `Network.request` (and, unlike
+   * `fetch`/undici, it works in restricted/proxied environments). Overridable
+   * in tests.
+   * @returns {Promise<{status:number, json:any, text:string}>}
+   */
+  _request(url, { method, headers, body }) {
+    const https = require("https");
+    return new Promise((resolve, reject) => {
+      const req = https.request(url, { method, headers }, (res) => {
+        const chunks = [];
+        res.on("data", (c) => chunks.push(c));
+        res.on("end", () => {
+          const text = Buffer.concat(chunks).toString("utf8");
+          let json = null;
+          try {
+            json = text ? JSON.parse(text) : null;
+          } catch (_) {
+            /* non-JSON body */
+          }
+          resolve({ status: res.statusCode, json, text });
+        });
+      });
+      req.on("error", reject);
+      if (body) req.write(body);
+      req.end();
+    });
   }
 }
 
