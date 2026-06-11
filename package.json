@@ -1,0 +1,33 @@
+{
+  "name": "@drumee/cli",
+  "version": "0.1.0",
+  "description": "Drumee command-line tool to manage users, hubs, settings, and the meta filesystem",
+  "license": "AGPL-3.0",
+  "author": "Somanos Sar <somanos@drumee.com>",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:drumee/cli.git"
+  },
+  "bin": {
+    "drumee": "./bin/drumee.js"
+  },
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node ./bin/drumee.js",
+    "release": "git push && npm publish --access public && npm version patch",
+    "dev": "drumee-server-devel",
+    "setup": "node node_modules/@drumee/server-dev-tools/env/write-env.js --type plugin --plugin cli --output devel --base-dir=$(pwd) --user=$USER --endpoint=$USER"
+  },
+  "dependencies": {
+    "@drumee/server-essentials": "^1.2.37",
+    "cli-table3": "^0.6.5",
+    "commander": "^12.1.0",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "@drumee/server-dev-tools": "^1.1.37"
+  }
+}
