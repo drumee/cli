@@ -37,7 +37,7 @@ drumee [global options] <group> <command> [options]
 
 ```bash
 # Users (drumates)
-drumee user list [--email <like>] [--category <c>]
+drumee user list [--email <like>] [--category <c>] [--verbose]  # --verbose adds db_name, home_id, home_dir
 drumee user get <id|email>
 drumee user delete <id|email>            # purge; alias: remove; requires root
 

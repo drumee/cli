@@ -11,24 +11,42 @@ class UserStore {
     this.b = backend;
   }
 
-  /** List users, optionally filtered by email (LIKE) or profile category. */
-  async list({ email, category } = {}) {
-    let sql = "SELECT id, email, fullname, profile FROM drumate";
+  /**
+   * List users, optionally filtered by email (LIKE) or profile category.
+   * When `verbose` is set, also report the entity's `db_name`, `home_id`, and
+   * `home_dir` (joined from `yp.entity`).
+   */
+  async list({ email, category, verbose } = {}) {
+    const cols = ["d.id", "d.email", "d.fullname", "d.profile"];
+    let from = "FROM drumate d";
+    if (verbose) {
+      cols.push("e.db_name", "e.home_id", "e.home_dir");
+      from += " LEFT JOIN entity e ON e.id = d.id";
+    }
+    let sql = `SELECT ${cols.join(", ")} ${from}`;
     const params = [];
     if (category) {
-      sql += ` WHERE JSON_VALUE(profile, "$.category") = ?`;
+      sql += ` WHERE JSON_VALUE(d.profile, "$.category") = ?`;
       params.push(category);
     } else if (email) {
-      sql += " WHERE email LIKE ?";
+      sql += " WHERE d.email LIKE ?";
       params.push(email);
     }
     const rows = this.b.toArray(await this.b.query(sql, ...params)) || [];
-    return rows.map((r) => ({
-      id: r.id,
-      email: r.email,
-      fullname: r.fullname,
-      category: (r.profile && r.profile.category) || "",
-    }));
+    return rows.map((r) => {
+      const out = {
+        id: r.id,
+        email: r.email,
+        fullname: r.fullname,
+        category: (r.profile && r.profile.category) || "",
+      };
+      if (verbose) {
+        out.db_name = r.db_name;
+        out.home_id = r.home_id;
+        out.home_dir = r.home_dir;
+      }
+      return out;
+    });
   }
 
   /** Resolve a single user by id or email. */
