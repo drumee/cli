@@ -24,8 +24,8 @@ class Context {
   /** Lazily build + connect the backend on first access. */
   async backend() {
     if (!this._backend) {
-      const { backend, domain, verbose } = this.opts;
-      this._backend = createBackend(backend, { domain, verbose });
+      const { backend, domain, verbose, host, token } = this.opts;
+      this._backend = createBackend(backend, { domain, verbose, host, token });
       await this._backend.connect();
     }
     return this._backend;

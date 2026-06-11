@@ -14,6 +14,7 @@ const registerUser = require("../src/commands/user");
 const registerHub = require("../src/commands/hub");
 const registerSettings = require("../src/commands/settings");
 const registerMfs = require("../src/commands/mfs");
+const registerApi = require("../src/commands/api");
 
 const program = new Command();
 
@@ -24,6 +25,8 @@ program
   // Global options shared by every command group.
   .option("--backend <kind>", "backend to talk to: db | api", "db")
   .option("--domain <id>", "domain id to scope operations to", "1")
+  .option("--host <url>", "remote host for --backend api (or DRUMEE_HOST)")
+  .option("--token <token>", "auth token for --backend api (or DRUMEE_TOKEN)")
   .option("--json", "output raw JSON instead of formatted tables", false)
   .option("--verbose", "verbose logging", false);
 
@@ -36,6 +39,7 @@ registerUser(program, ctx);
 registerHub(program, ctx);
 registerSettings(program, ctx);
 registerMfs(program, ctx);
+registerApi(program, ctx);
 
 program.parseAsync(process.argv).catch((err) => {
   ctx.fail(err);

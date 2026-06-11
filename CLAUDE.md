@@ -34,7 +34,18 @@ No test runner or linter is configured yet.
     shard `db_name` (e.g. `` `${db}.show_hubs` ``).
   - `db/{users,hubs,settings,mfs}.js` — resource stores; each takes the backend and calls
     real stored procedures / lookups (see below).
-  - `api/index.js` (`ApiBackend`) — planned remote service-API backend; currently throws.
+  - `api/` (`ApiBackend`) — remote service-API backend. `client.js` (`ApiClient`)
+    is the authenticated transport: `POST <host>/-/svc/<module>.<method>`, JSON
+    body, envelope `data`/`error`, `x-param-keysel`/`x-param-<keysel>` session
+    headers (mirrors `@drumee/ui-essentials/socket`). `connect()` builds the
+    client from `--host`/`--token` → `DRUMEE_HOST`/`DRUMEE_TOKEN` → the cached
+    login (`src/lib/config.js`, `~/.config/drumee/cli.json`). Per-resource methods
+    currently report "not yet implemented over --backend api" (a `Proxy` stub)
+    pending live validation of the auth handshake.
+  - `src/commands/api.js` — `drumee api login|logout|whoami|call`. `login` runs
+    the `authn.create` service (Basic → token) and caches it; `call` invokes any
+    service directly. These build an ApiClient inline (login can't go through a
+    connected backend).
 - **`src/commands/`** — one file per group; pure commander wiring that delegates to
   `backend.<resource>.<method>`.
 - **`src/lib/`** — `output.js` (cli-table3 / JSON rendering), `errors.js`

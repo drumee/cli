@@ -28,8 +28,10 @@ drumee [global options] <group> <command> [options]
 
 | Option | Default | Meaning |
 |---|---|---|
-| `--backend <db\|api>` | `db` | Transport. `db` = direct MariaDB; `api` = remote service API (planned). |
+| `--backend <db\|api>` | `db` | Transport. `db` = direct MariaDB; `api` = remote service API (transport ready; per-resource mappings in progress). |
 | `--domain <id>` | `1` | Domain id to scope operations to. |
+| `--host <url>` | — | Remote host for `--backend api` (or `DRUMEE_HOST`). |
+| `--token <token>` | — | Auth token for `--backend api` (or `DRUMEE_TOKEN`). |
 | `--json` | off | Emit raw JSON instead of formatted tables. |
 | `--verbose` | off | Verbose logging / full stack traces on error. |
 
@@ -60,6 +62,12 @@ drumee mfs ls     --entity <id|email> [--parent <node>] [--type <category>]
 drumee mfs node   --entity <id|email> --id <node>
 drumee mfs import --entity <id|email> --src <path> [--parent <node>] [--dest <folder>]
 drumee mfs export --entity <id|email> --dest <dir> [--node <id>]
+
+# Remote service API (transport)
+drumee api login --host <url> --email <e> --password <p>   # or --token <t>; caches to ~/.config/drumee/cli.json
+drumee api whoami
+drumee api logout
+drumee api call <module.method> [--data '<json>'] [--get]  # call any /-/svc/ service
 ```
 
 Add `--json` to any command for machine-readable output.
@@ -87,8 +95,16 @@ against `yp.entity`), so a purge can never touch another tenant's files.
 `mfs export` walks the shard's `media` table and copies the blobs back out,
 rebuilding the folder hierarchy.
 
-**Planned:** the remote `--backend api`. The `api` backend exists and reports a
-clear "not implemented yet" message.
+**Remote API backend (in progress):** the authenticated transport is built —
+`drumee api login` (via the `authn.create` service) and `drumee api call` work
+against a live instance, and `--backend api` constructs the client from
+`--host`/`--token` (or `DRUMEE_HOST`/`DRUMEE_TOKEN`, or the cached login). The
+per-resource mappings (`user`/`hub`/`settings`/`mfs` over services) are pending
+validation of the auth handshake against a running server, so those report a
+clear "not yet implemented over --backend api" for now.
+
+A future increment will add a local↔remote MFS **sync** engine (a headless port
+of the `ui-desktop` sync) on top of this transport.
 
 ## Architecture
 
