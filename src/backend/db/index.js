@@ -32,8 +32,10 @@ class DbBackend {
   async connect() {
     // Lazy-require so `--help` and arg errors never load server-essentials
     // (which logs runtime/UI probes at require time).
-    const { Mariadb, Cache, sysEnv, toArray } = require("@drumee/server-essentials");
+    const { Mariadb, Cache, sysEnv, toArray, uniqueId } = require("@drumee/server-essentials");
     this.toArray = toArray;
+    this.uniqueId = uniqueId;
+    this.Cache = Cache;
     this.env = sysEnv();
     this.mfsDir = this.env.mfs_dir;
     this.yp = new Mariadb({ name: "yp", user: process.env.USER, idleTimeout: 60 });

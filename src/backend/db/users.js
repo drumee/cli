@@ -103,14 +103,104 @@ class UserStore {
     }
   }
 
-  // --- planned for a later version --------------------------------------
+  /**
+   * Create a user (drumate). Mirrors @drumee/shell's `Drumate.create`:
+   * `drumate_create(password, profile)` claims a pooled drumate entity
+   * (`pickupEntity`), provisions its shard, and the default top-level folders
+   * are seeded via `mfs_init_folders`.
+   *
+   * `domain` is optional — it defaults to the instance domain. The password is
+   * hashed by the procedure; when none is given a random one is generated and
+   * returned once (as `generatedPassword`) so the admin can convey it.
+   *
+   * @param {object} opts
+   * @param {string} opts.email (required)
+   * @param {string} [opts.firstname] [opts.lastname] [opts.username]
+   * @param {string} [opts.domain] [opts.lang="en"] [opts.category] [opts.privilege]
+   * @param {string} [opts.password]
+   */
+  async add({
+    email,
+    firstname,
+    lastname,
+    username,
+    domain,
+    lang = "en",
+    category,
+    privilege,
+    password,
+  } = {}) {
+    if (!email) throw new Error("user add requires --email");
 
-  async add() {
-    throw new NotImplemented(
-      "user add",
-      "account provisioning (claim a pooled entity, drumate_create, updateEntries, init folders) is planned"
-    );
+    // Reject duplicates up front.
+    const existing = await this.b.proc("get_user", email);
+    if (existing && existing.id && existing.email) {
+      throw new Error(`user already exists: ${email}`);
+    }
+
+    // Seed a username; drumate_create strips accents and uniquifies further.
+    let uname = username || firstname || email.split("@")[0] || this.b.uniqueId();
+    uname = uname.replace(/[ ']+/g, "").toLowerCase();
+
+    const profile = {
+      email,
+      firstname,
+      lastname,
+      lang,
+      privilege,
+      domain,
+      username: uname,
+      sharebox: this.b.uniqueId(),
+      otp: 0,
+      category,
+    };
+    const pw = password || this.b.uniqueId();
+
+    const rows = this.b.toArray(await this.b.proc("drumate_create", pw, profile)) || [];
+    let created = null;
+    for (const r of rows) {
+      if (r && r.failed) {
+        const reason =
+          r.reason === "EMPTY_FACTORY"
+            ? "no drumate entity available in the factory pool (is the factory daemon running?)"
+            : r.reason || "unknown error";
+        throw new Error(`user add failed: ${reason}`);
+      }
+      if (r && r.drumate) created = r.drumate;
+    }
+    if (!created || !created.id) {
+      throw new Error("user add: drumate_create returned no entity");
+    }
+
+    await this._initFolders(created);
+
+    const user = (await this.b.proc("get_user", created.id)) || {
+      id: created.id,
+      email,
+    };
+    if (!password) user.generatedPassword = pw;
+    return user;
   }
+
+  /** Seed the default top-level folders in a freshly created user's shard. */
+  async _initFolders(user) {
+    if (!user.db_name) return;
+    const folders = ["_photos", "_documents", "_videos", "_musics"].map((n) => ({
+      path: this._folderName(n),
+    }));
+    await this.b.proc(`${user.db_name}.mfs_init_folders`, folders, 1);
+  }
+
+  /** Localised folder label, falling back to the raw key. */
+  _folderName(key) {
+    try {
+      return (this.b.Cache && this.b.Cache.message(key)) || key;
+    } catch (_) {
+      return key;
+    }
+  }
+
+  // --- planned for a later version --------------------------------------
 
   async update() {
     throw new NotImplemented("user update");

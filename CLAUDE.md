@@ -44,7 +44,7 @@ No test runner or linter is configured yet.
 
 | Resource | Procedure(s) |
 |---|---|
-| user | `get_user`, `show_hubs`, `remove_all_members`, `drumate_vanish`, `leave_hub`, `entity_delete` |
+| user | `get_user`, `drumate_create`, `mfs_init_folders` (in new shard), `show_hubs`, `remove_all_members`, `drumate_vanish`, `leave_hub`, `entity_delete` |
 | hub | `get_hub`, `show_hubs`, `show_all_members` (per hub shard), `desk_create_hub` (in owner's shard), `remove_all_members`, `entity_delete` |
 
 `user delete` / `hub delete` are full purges mirroring `@drumee/shell`'s
@@ -63,14 +63,23 @@ destructive ops *and* again inside `removeStorage`, so a malformed/empty/ancesto
 | settings | `get_sys_conf`, `sys_conf_set` |
 | mfs | `mfs_list_by` (args: `{pid,type,page,sort,order}`), `mfs_show_node_by(id,uid,params)` |
 
+`user add` runs `drumate_create(password, profile)` (claims a pooled drumate via
+`pickupEntity`; the proc hashes the password) then seeds default folders with
+`mfs_init_folders`. `domain` defaults to the instance domain. An empty pool
+surfaces as `EMPTY_FACTORY`. A random password is generated and returned once
+(`generatedPassword`) when `--password` is omitted. The fixed-uid remap
+(`updateEntries`) used by org bootstrap is intentionally out of scope here.
+
 `hub create` runs `desk_create_hub(args, profile)` **inside the owner's drumate
 shard** (resolved via `get_user`), which claims a pooled hub entity
 (`pickupEntity`) and wires vhost/permissions/MFS folders. It is idempotent on the
 resolved vhost. Required args: `{hostname, filename, area, owner_id, domain,
 domain_id}`.
 
-Planned (not yet wired): `drumate_create`/provisioning for `user add`, MFS
-import/export.
+Both `user add` and `hub create` depend on the factory warm pool having a
+pre-provisioned entity available.
+
+Planned (not yet wired): `user update`, MFS import/export, the `api` backend.
 
 ## Conventions
 

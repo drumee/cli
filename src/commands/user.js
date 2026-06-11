@@ -32,11 +32,16 @@ module.exports = function registerUser(program, ctx) {
 
   user
     .command("add")
-    .description("Create a user (planned)")
-    .option("--email <email>", "user email")
+    .description("Create a user (drumate)")
+    .requiredOption("--email <email>", "user email")
     .option("--firstname <name>", "first name")
     .option("--lastname <name>", "last name")
-    .option("--password <password>", "initial password")
+    .option("--username <name>", "username (derived from name/email if omitted)")
+    .option("--domain <domain>", "domain name (defaults to the instance domain)")
+    .option("--lang <lang>", "language", "en")
+    .option("--category <category>", "profile category")
+    .option("--privilege <n>", "domain privilege level")
+    .option("--password <password>", "initial password (random if omitted)")
     .action(ctx.runner((backend, opts) => backend.user.add(opts)));
 
   user
