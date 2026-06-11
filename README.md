@@ -63,11 +63,12 @@ drumee mfs node   --entity <id|email> --id <node>
 drumee mfs import --entity <id|email> --src <path> [--parent <node>] [--dest <folder>]
 drumee mfs export --entity <id|email> --dest <dir> [--node <id>]
 
-# Remote service API (transport)
-drumee api login --host <url> --email <e> --password <p>   # or --token <t>; caches to ~/.config/drumee/cli.json
+# Remote service API
+drumee --host https://drumee.in/-/somanos/ api login         # device pairing: opens the app to authorize
+drumee --host <url> api login --token <pat>                  # headless/CI: use a Personal Access Token
 drumee api whoami
 drumee api logout
-drumee api call <module.method> [--data '<json>'] [--get]  # call any /-/svc/ service
+drumee api call <module.method> [--data '<json>'] [--get]    # call any /-/svc/ service
 ```
 
 Add `--json` to any command for machine-readable output.
@@ -95,13 +96,16 @@ against `yp.entity`), so a purge can never touch another tenant's files.
 `mfs export` walks the shard's `media` table and copies the blobs back out,
 rebuilding the folder hierarchy.
 
-**Remote API backend (in progress):** the authenticated transport is built —
-`drumee api login` (via the `authn.create` service) and `drumee api call` work
-against a live instance, and `--backend api` constructs the client from
+**Remote API backend (in progress):** the authenticated transport is built.
+`drumee api login` does an **npm/gh-style device pairing** — it calls
+`authn.begin`, opens the app's authorize page (the owner approves the shown
+`user_code`), polls `authn.poll`, and caches the minted token; `--token <pat>`
+skips the browser for headless/CI. `--backend api` constructs the client from
 `--host`/`--token` (or `DRUMEE_HOST`/`DRUMEE_TOKEN`, or the cached login). The
-per-resource mappings (`user`/`hub`/`settings`/`mfs` over services) are pending
-validation of the auth handshake against a running server, so those report a
-clear "not yet implemented over --backend api" for now.
+per-resource mappings (`user`/`hub`/`settings`/`mfs` over services) and the
+server-side token→session resolution are landing across the `feat/cli-token-auth`
+branches (schemas, server-team, server-core), so those report a clear "not yet
+implemented over --backend api" until that lands.
 
 A future increment will add a local↔remote MFS **sync** engine (a headless port
 of the `ui-desktop` sync) on top of this transport.

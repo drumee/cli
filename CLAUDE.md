@@ -48,10 +48,12 @@ No test runner or linter is configured yet.
     login (`src/lib/config.js`, `~/.config/drumee/cli.json`). Per-resource methods
     currently report "not yet implemented over --backend api" (a `Proxy` stub)
     pending live validation of the auth handshake.
-  - `src/commands/api.js` — `drumee api login|logout|whoami|call`. `login` runs
-    the `authn.create` service (Basic → token) and caches it; `call` invokes any
-    service directly. These build an ApiClient inline (login can't go through a
-    connected backend).
+  - `src/commands/api.js` — `drumee api login|logout|whoami|call`. `login` does an
+    npm/gh-style **device pairing** via `src/backend/api/pairing.js`
+    (`deviceLogin`): `authn.begin` → open the app authorize page (`#/authorize?code=`)
+    → poll `authn.poll` until approved → cache the token; `--token <pat>` is the
+    headless path. `pairing.js` exposes `_client`/`_sleep`/`_now` seams for tests.
+    `call` invokes any service directly. These build an ApiClient inline.
 - **`src/commands/`** — one file per group; pure commander wiring that delegates to
   `backend.<resource>.<method>`.
 - **`src/lib/`** — `output.js` (cli-table3 / JSON rendering), `errors.js`

@@ -1,5 +1,9 @@
+const os = require("os");
 const { ApiClient } = require("../backend/api/client");
+const { deviceLogin } = require("../backend/api/pairing");
 const config = require("../lib/config");
+
+const mask = (t) => `${String(t).slice(0, 4)}…`;
 
 /**
  * `drumee api …` — manage the remote service-API connection and call services
@@ -32,28 +36,30 @@ module.exports = function registerApi(program, ctx) {
 
   api
     .command("login")
-    .description("Authenticate to a Drumee instance and cache the token (--host required)")
-    .option("--email <email>", "account email (with --password)")
-    .option("--password <password>", "account password (with --email)")
-    .option("--token <token>", "use a pre-issued token instead of email/password")
+    .description("Authenticate via the app (device pairing) and cache the token (--host required)")
+    .option("--token <token>", "use a pre-issued Personal Access Token instead of the browser flow")
+    .option("--label <label>", "device label shown in the app", os.hostname())
+    .option("--no-browser", "do not open a browser; just print the authorize URL")
     .action(
       run(async (opts) => {
         const host = resolveHost();
         if (!host) throw new Error("pass --host <url> (e.g. https://drumee.in/-/somanos/)");
-        let token = opts.token;
-        if (!token) {
-          if (!opts.email || !opts.password) {
-            throw new Error("provide --token, or both --email and --password");
-          }
-          const client = new ApiClient({ host });
-          const authorization =
-            "Basic " + Buffer.from(`${opts.email}:${opts.password}`).toString("base64");
-          const data = await client.call("authn.create", {}, { authorization });
-          token = data && data.token;
-          if (!token) throw new Error("login failed: no token returned by authn.create");
+
+        // Headless / CI: a Personal Access Token minted in the app.
+        if (opts.token) {
+          config.save({ host, token: opts.token });
+          return { host, mode: "pat", token: mask(opts.token), saved: config.FILE };
         }
+
+        // Browser device-pairing flow (npm/gh-style).
+        const { token, label } = await deviceLogin({
+          host,
+          label: opts.label,
+          open: opts.browser !== false,
+          log: (m) => process.stderr.write(m),
+        });
         config.save({ host, token });
-        return { host, token: `${String(token).slice(0, 4)}…`, saved: config.FILE };
+        return { host, mode: "device", label, token: mask(token), saved: config.FILE };
       })
     );
 
