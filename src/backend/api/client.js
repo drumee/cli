@@ -48,11 +48,20 @@ class ApiClient {
       "x-param-lang": this.lang,
       ...extra,
     };
-    if (this.keysel) {
+    if (this.token) {
+      // CLI/PAT token — resolved server-side by session_check_cookie via the
+      // x-param-authn-token header.
+      h["x-param-authn-token"] = this.token;
+      // Supply a session id so the server's validSid() passes; the token
+      // doubles as the sid when no explicit keysel/sid is configured.
+      const keysel = this.keysel || "regsid";
+      h["x-param-keysel"] = keysel;
+      h[`x-param-${keysel}`] = this.sid || this.token;
+      if (!h.Authorization) h.Authorization = `Bearer ${this.token}`;
+    } else if (this.keysel) {
       h["x-param-keysel"] = this.keysel;
       if (this.sid) h[`x-param-${this.keysel}`] = this.sid;
     }
-    if (this.token && !h.Authorization) h.Authorization = `Bearer ${this.token}`;
     return h;
   }
 
