@@ -9,7 +9,9 @@ const { MfsStore } = require("./mfs");
  * Connects to the central `yp` (Yellow Pages) database as the current system
  * user — the same bootstrap @drumee/shell and @drumee/setup-schemas use — and
  * routes per-entity operations to the right shard by prefixing the resolved
- * `db_name` onto the procedure call (e.g. `9_ab12….show_hubs`).
+ * `db_name` onto the procedure call (e.g. `<x>_ab12….show_hubs`). The leading
+ * `<x>_` is an arbitrary bucket character, not a type marker — never infer an
+ * entity's type from its db_name.
  *
  * All data access goes through stored procedures or read-only lookups; no
  * business logic is duplicated in raw SQL beyond simple SELECTs.

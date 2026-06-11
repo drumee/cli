@@ -93,7 +93,8 @@ src/
 
 Every command calls an abstract backend resource (`backend.user.list()`, etc.). The DB
 backend resolves an entity's shard database (`db_name`) and prefixes per-entity procedure
-calls — e.g. `9_ab12….show_hubs`. See the
+calls — e.g. `<x>_ab12….show_hubs` (the leading `<x>_` is an arbitrary bucket character,
+not a type marker). See the
 [Database Sharding](https://docs.drumee.com/technology/07-database-sharding) docs for the
 underlying model.
 
