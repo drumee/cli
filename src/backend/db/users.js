@@ -1,4 +1,4 @@
-const { NotImplemented, requireRoot } = require("../../lib/errors");
+const { requireRoot } = require("../../lib/errors");
 
 /**
  * User (drumate) operations against the `yp` database.
@@ -200,10 +200,60 @@ class UserStore {
     }
   }
 
-  // --- planned for a later version --------------------------------------
+  /**
+   * Update a user's fields. Each field is routed to its canonical procedure:
+   *   - firstname/lastname/category/quota → `drumate_update_profile` (one call)
+   *   - email    → `drumate_change_email`
+   *   - username → `drumate_change_username`
+   *   - mobile   → `drumate_change_mobile`
+   *   - lang     → `drumate_set_lang`
+   *   - password → `set_password` (the proc hashes it)
+   *
+   * At least one field must be supplied. Returns the refreshed user plus a
+   * summary of what changed.
+   */
+  async update(key, opts = {}) {
+    if (!key) throw new Error("user update requires an id or email");
+    const user = await this.b.proc("get_user", key);
+    if (!user || !user.id) throw new Error(`Unknown user: ${key}`);
+    const id = user.id;
 
-  async update() {
-    throw new NotImplemented("user update");
+    const changed = [];
+
+    // Generic profile fields — merged in a single drumate_update_profile call.
+    const profile = {};
+    for (const f of ["firstname", "lastname", "category", "quota"]) {
+      if (opts[f] !== undefined) profile[f] = opts[f];
+    }
+    if (Object.keys(profile).length) {
+      await this.b.proc("drumate_update_profile", id, profile);
+      changed.push(...Object.keys(profile));
+    }
+
+    // Fields with dedicated procedures.
+    const dedicated = [
+      ["email", "drumate_change_email"],
+      ["username", "drumate_change_username"],
+      ["mobile", "drumate_change_mobile"],
+      ["lang", "drumate_set_lang"],
+      ["password", "set_password"],
+    ];
+    for (const [field, proc] of dedicated) {
+      if (opts[field] !== undefined) {
+        await this.b.proc(proc, id, opts[field]);
+        changed.push(field);
+      }
+    }
+
+    if (!changed.length) {
+      throw new Error(
+        "user update: nothing to change — supply at least one field (e.g. --firstname, --email, --password)"
+      );
+    }
+
+    const updated = (await this.b.proc("get_user", id)) || { id };
+    updated.changed = changed.join(", ");
+    return updated;
   }
 }
 

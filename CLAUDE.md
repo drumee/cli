@@ -44,7 +44,7 @@ No test runner or linter is configured yet.
 
 | Resource | Procedure(s) |
 |---|---|
-| user | `get_user`, `drumate_create`, `mfs_init_folders` (in new shard), `show_hubs`, `remove_all_members`, `drumate_vanish`, `leave_hub`, `entity_delete` |
+| user | `get_user`, `drumate_create`, `mfs_init_folders` (in new shard), `drumate_update_profile`, `drumate_change_email`/`_username`/`_mobile`, `drumate_set_lang`, `set_password`, `show_hubs`, `remove_all_members`, `drumate_vanish`, `leave_hub`, `entity_delete` |
 | hub | `get_hub`, `show_hubs`, `show_all_members` (per hub shard), `desk_create_hub` (in owner's shard), `remove_all_members`, `entity_delete` |
 
 `user delete` / `hub delete` are full purges mirroring `@drumee/shell`'s
@@ -79,7 +79,12 @@ domain_id}`.
 Both `user add` and `hub create` depend on the factory warm pool having a
 pre-provisioned entity available.
 
-Planned (not yet wired): `user update`, MFS import/export, the `api` backend.
+`user update` routes each field to its canonical procedure:
+`drumate_update_profile` (firstname/lastname/category/quota — one call),
+`drumate_change_email`/`_username`/`_mobile`, `drumate_set_lang`, and
+`set_password` (which hashes via `sha2`). At least one field is required.
+
+Planned (not yet wired): MFS import/export, the `api` backend.
 
 ## Conventions
 

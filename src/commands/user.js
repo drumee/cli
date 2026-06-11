@@ -46,6 +46,15 @@ module.exports = function registerUser(program, ctx) {
 
   user
     .command("update <key>")
-    .description("Update a user (planned)")
+    .description("Update a user's fields (by id or email)")
+    .option("--firstname <name>", "first name")
+    .option("--lastname <name>", "last name")
+    .option("--username <name>", "username")
+    .option("--email <email>", "email address")
+    .option("--mobile <mobile>", "mobile number")
+    .option("--lang <lang>", "language")
+    .option("--category <category>", "profile category")
+    .option("--quota <bytes>", "storage quota")
+    .option("--password <password>", "new password")
     .action(ctx.runner((backend, opts, key) => backend.user.update(key, opts)));
 };

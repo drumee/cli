@@ -40,6 +40,7 @@ drumee [global options] <group> <command> [options]
 drumee user list [--email <like>] [--category <c>] [--verbose]  # --verbose adds db_name, home_id, home_dir
 drumee user get <id|email>
 drumee user add --email <email> [--firstname <n>] [--lastname <n>] [--password <p>] [--domain <d>]
+drumee user update <id|email> [--firstname <n>] [--email <e>] [--lang <l>] [--password <p>] ...
 drumee user delete <id|email>            # purge; alias: remove; requires root
 
 # Hubs (workspaces)
@@ -63,7 +64,7 @@ Add `--json` to any command for machine-readable output.
 
 ## Status (v0.1)
 
-**Implemented:** `user list/get/add/delete`, `hub list/get/members/create/delete`,
+**Implemented:** `user list/get/add/update/delete`, `hub list/get/members/create/delete`,
 `settings list/get/set`, `mfs ls/node`. (`delete` aliases `remove`.)
 
 `user add` and `hub create` both claim a pre-provisioned entity from the factory
@@ -79,8 +80,8 @@ Physical deletion is double-guarded: the target directory must lie strictly
 inside `mfs_dir` **and** must contain no other tenant's `home_dir` (checked
 against `yp.entity`), so a purge can never touch another tenant's files.
 
-**Planned:** `user update`, `mfs import/export`, and the remote
-`--backend api`. These commands exist and report a clear "not implemented yet" message.
+**Planned:** `mfs import/export`, and the remote `--backend api`. These commands
+exist and report a clear "not implemented yet" message.
 
 ## Architecture
 
