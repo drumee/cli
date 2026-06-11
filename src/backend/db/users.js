@@ -73,15 +73,16 @@ class UserStore {
     const user = await this.b.proc("get_user", key);
     if (!user || !user.id) throw new Error(`Unknown user: ${key}`);
 
-    // Pre-flight: confirm the user's storage root is exclusively theirs BEFORE
-    // dropping anything, so an unsafe path aborts without partial state.
-    const home = (await this.b.entityHomeDir(user.id)) || user.home_dir;
+    // get_user already returns home_dir; only look it up if it is absent.
+    const home = user.home_dir || (await this.b.entityHomeDir(user.id));
+    // Pre-flight: confirm the storage root is exclusively this user's BEFORE
+    // dropping anything, so an unsafe path aborts with no partial state.
     if (home) await this.b.assertExclusiveStorage(home, user.id);
 
     await this._removeHubs(user);
-
-    const res = (await this.b.proc("entity_delete", user.id)) || {};
-    const removed = await this.b.removeStorage(res.home_dir || home, user.id);
+    await this.b.proc("entity_delete", user.id);
+    // Delete exactly the path we validated (removeStorage re-checks as well).
+    const removed = home ? await this.b.removeStorage(home, user.id) : false;
 
     return { purged: user.id, email: user.email, storageRemoved: removed };
   }

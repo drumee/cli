@@ -97,22 +97,16 @@ class MfsStore {
 
   async _importFile(conn, destNode, src) {
     const st = statSync(src);
-    const ext = extname(src).replace(/^\.+/, "").toLowerCase();
-    const filename = basename(src, ext ? `.${ext}` : "");
+    const rawExt = extname(src); // original case, e.g. ".PDF"
+    const ext = rawExt.replace(/^\.+/, "").toLowerCase();
+    const filename = basename(src, rawExt); // strip the exact (case-sensitive) suffix
 
-    // filetype/mimetype from the yp.filecap table (fallbacks otherwise).
-    let filetype = "other";
-    let mimetype = ext ? `application/${ext}` : "application/octet-stream";
-    const cap = this._row(
-      await this.b.query(
-        "SELECT category filetype, mimetype FROM filecap WHERE extension = ? LIMIT 1",
-        ext
-      )
-    );
-    if (cap) {
-      filetype = cap.filetype || filetype;
-      mimetype = cap.mimetype || mimetype;
-    }
+    // filetype/mimetype from the warm filecap cache (loaded at connect) — no
+    // per-file DB round-trip for static reference data.
+    const cap = (this.b.Cache && this.b.Cache.getFilecap(ext)) || {};
+    const filetype = cap.category || "other";
+    const mimetype =
+      cap.mimetype || (ext ? `application/${ext}` : "application/octet-stream");
 
     const homeDir = String(destNode.home_dir || "").replace(/\/__storage__.*$/, "");
     if (!homeDir) throw new Error("destination folder has no home_dir");

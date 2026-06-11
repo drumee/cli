@@ -13,12 +13,17 @@ class SettingsStore {
 
   /** Return all settings as `{ key, value }` rows. */
   async list() {
-    const rows = this.b.toArray(await this.b.proc("get_sys_conf")) || [];
-    // get_sys_conf returns a single row of key→value pairs; normalise to a list.
-    if (rows.length === 1 && !("conf_key" in rows[0])) {
-      return Object.entries(rows[0]).map(([key, value]) => ({ key, value }));
-    }
-    return rows.map((r) => ({ key: r.conf_key, value: r.conf_value }));
+    // get_sys_conf SELECTs `conf_key AS key, conf_value AS value`, so rows are
+    // {key, value}. A CALL result may arrive nested as [rows, …] — unwrap it the
+    // same way @drumee/server-essentials Cache.load does.
+    const data = await this.b.proc("get_sys_conf");
+    const rows =
+      Array.isArray(data) && Array.isArray(data[0])
+        ? data[0]
+        : this.b.toArray(data) || [];
+    return rows
+      .filter((r) => r && r.key !== undefined)
+      .map((r) => ({ key: r.key, value: r.value }));
   }
 
   /** Get a single setting value by key. */

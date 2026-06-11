@@ -65,9 +65,9 @@ class DbBackend {
     return this.yp.await_proc(name, ...args);
   }
 
-  /** Call a stored function in the `yp` database. */
-  func(name, ...args) {
-    return this.yp.await_func(name, ...args);
+  /** First row of a query/proc result (handles array or single-object shapes). */
+  firstRow(out) {
+    return Array.isArray(out) ? out[0] ?? null : out ?? null;
   }
 
   /**
@@ -75,20 +75,14 @@ class DbBackend {
    * Returns null when the entity is unknown.
    */
   async dbName(key) {
-    const rows = await this.query(
-      "SELECT db_name FROM entity WHERE id = ? OR ident = ? LIMIT 1",
-      key,
-      key
+    const row = this.firstRow(
+      await this.query(
+        "SELECT db_name FROM entity WHERE id = ? OR ident = ? LIMIT 1",
+        key,
+        key
+      )
     );
-    const row = Array.isArray(rows) ? rows[0] : rows;
     return row ? row.db_name : null;
-  }
-
-  /** Call a procedure inside a specific entity shard database. */
-  async procIn(key, name, ...args) {
-    const db = await this.dbName(key);
-    if (!db) throw new Error(`Unknown entity: ${key}`);
-    return this.yp.await_proc(`${db}.${name}`, ...args);
   }
 
   /**
@@ -103,11 +97,9 @@ class DbBackend {
 
   /** The recorded storage root (`home_dir`) of an entity, or null. */
   async entityHomeDir(id) {
-    const rows = await this.query(
-      "SELECT home_dir FROM entity WHERE id = ? LIMIT 1",
-      id
+    const row = this.firstRow(
+      await this.query("SELECT home_dir FROM entity WHERE id = ? LIMIT 1", id)
     );
-    const row = Array.isArray(rows) ? rows[0] : rows;
     return row ? row.home_dir : null;
   }
 

@@ -60,16 +60,15 @@ class HubStore {
     const hub = await this.b.proc("get_hub", key);
     if (!hub || !hub.id) throw new Error(`Unknown hub: ${key}`);
 
-    // Pre-flight: confirm the hub's storage root is exclusively its own before
-    // dropping anything.
-    const home = (await this.b.entityHomeDir(hub.id)) || hub.home_dir;
+    // Prefer the home_dir from get_hub; only look it up if absent.
+    const home = hub.home_dir || (await this.b.entityHomeDir(hub.id));
     if (home) await this.b.assertExclusiveStorage(home, hub.id);
 
     if (hub.db_name) {
       await this.b.proc(`${hub.db_name}.remove_all_members`, 0);
     }
-    const res = (await this.b.proc("entity_delete", hub.id)) || {};
-    const removed = await this.b.removeStorage(res.home_dir || home, hub.id);
+    await this.b.proc("entity_delete", hub.id);
+    const removed = home ? await this.b.removeStorage(home, hub.id) : false;
     return { purged: hub.id, name: hub.hubname || hub.name, storageRemoved: removed };
   }
 
@@ -107,11 +106,9 @@ class HubStore {
     const vhost = `${hostname}.${domainName}`;
 
     // Idempotent: if the vhost already exists, return the existing hub.
-    const existing = await this.b.query(
-      "SELECT id FROM vhost WHERE fqdn = ? LIMIT 1",
-      vhost
+    const ex = this.b.firstRow(
+      await this.b.query("SELECT id FROM vhost WHERE fqdn = ? LIMIT 1", vhost)
     );
-    const ex = Array.isArray(existing) ? existing[0] : existing;
     if (ex && ex.id) return this.b.proc("get_hub", ex.id);
 
     const args = {
@@ -141,8 +138,9 @@ class HubStore {
     if (created && created.hub_id) return this.b.proc("get_hub", created.hub_id);
 
     // Fallback: resolve by the vhost we just created.
-    const v = await this.b.query("SELECT id FROM vhost WHERE fqdn = ? LIMIT 1", vhost);
-    const vr = Array.isArray(v) ? v[0] : v;
+    const vr = this.b.firstRow(
+      await this.b.query("SELECT id FROM vhost WHERE fqdn = ? LIMIT 1", vhost)
+    );
     if (vr && vr.id) return this.b.proc("get_hub", vr.id);
 
     throw new Error(`hub create did not return a usable hub for ${vhost}`);

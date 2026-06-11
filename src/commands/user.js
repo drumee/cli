@@ -10,12 +10,8 @@ module.exports = function registerUser(program, ctx) {
     .option("--email <pattern>", "filter by email (SQL LIKE pattern)")
     .option("--category <category>", "filter by profile category")
     .option("--verbose", "also show db_name, home_id and home_dir")
-    .action(
-      ctx.runner((backend, opts) =>
-        // Honour both the command-level flag and the global --verbose.
-        backend.user.list({ ...opts, verbose: opts.verbose || ctx.opts.verbose })
-      )
-    );
+    // runner() already folds the global --verbose into opts.verbose.
+    .action(ctx.runner((backend, opts) => backend.user.list(opts)));
 
   user
     .command("get <key>")
