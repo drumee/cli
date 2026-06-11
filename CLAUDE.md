@@ -45,7 +45,7 @@ No test runner or linter is configured yet.
 | Resource | Procedure(s) |
 |---|---|
 | user | `get_user`, `show_hubs`, `remove_all_members`, `drumate_vanish`, `leave_hub`, `entity_delete` |
-| hub | `get_hub`, `show_hubs`, `show_all_members` (per hub shard), `remove_all_members`, `entity_delete` |
+| hub | `get_hub`, `show_hubs`, `show_all_members` (per hub shard), `desk_create_hub` (in owner's shard), `remove_all_members`, `entity_delete` |
 
 `user delete` / `hub delete` are full purges mirroring `@drumee/shell`'s
 `Drumate.remove`: detach from every hub (purge owned, leave shared), drop the
@@ -63,8 +63,14 @@ destructive ops *and* again inside `removeStorage`, so a malformed/empty/ancesto
 | settings | `get_sys_conf`, `sys_conf_set` |
 | mfs | `mfs_list_by` (args: `{pid,type,page,sort,order}`), `mfs_show_node_by(id,uid,params)` |
 
-Planned (not yet wired): `drumate_create`/provisioning for `user add`, `desk_create_hub`
-for `hub create`, MFS import/export.
+`hub create` runs `desk_create_hub(args, profile)` **inside the owner's drumate
+shard** (resolved via `get_user`), which claims a pooled hub entity
+(`pickupEntity`) and wires vhost/permissions/MFS folders. It is idempotent on the
+resolved vhost. Required args: `{hostname, filename, area, owner_id, domain,
+domain_id}`.
+
+Planned (not yet wired): `drumate_create`/provisioning for `user add`, MFS
+import/export.
 
 ## Conventions
 

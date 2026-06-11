@@ -45,6 +45,7 @@ drumee user delete <id|email>            # purge; alias: remove; requires root
 drumee hub list [--owner <id|email>]
 drumee hub get <id|ident>
 drumee hub members <id|ident>
+drumee hub create --name <name> --owner <id|email> [--area <a>] [--domain <d>]
 drumee hub delete <id|ident>             # purge; alias: remove; requires root
 
 # System settings (sys_conf)
@@ -61,7 +62,7 @@ Add `--json` to any command for machine-readable output.
 
 ## Status (v0.1)
 
-**Implemented:** `user list/get/delete`, `hub list/get/members/delete`,
+**Implemented:** `user list/get/delete`, `hub list/get/members/create/delete`,
 `settings list/get/set`, `mfs ls/node`. (`delete` aliases `remove`.)
 
 `delete` is a full **purge**: it unshares the entity from every hub it belongs
@@ -72,7 +73,7 @@ Physical deletion is double-guarded: the target directory must lie strictly
 inside `mfs_dir` **and** must contain no other tenant's `home_dir` (checked
 against `yp.entity`), so a purge can never touch another tenant's files.
 
-**Planned:** `user add/update`, `hub create`, `mfs import/export`, and the remote
+**Planned:** `user add/update`, `mfs import/export`, and the remote
 `--backend api`. These commands exist and report a clear "not implemented yet" message.
 
 ## Architecture
