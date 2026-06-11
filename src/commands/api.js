@@ -26,33 +26,34 @@ module.exports = function registerApi(program, ctx) {
     }
   };
 
+  // The instance host comes from the global `--host` (or DRUMEE_HOST); it binds
+  // to the program options regardless of position, so we read it from ctx.
+  const resolveHost = () => ctx.opts.host || process.env.DRUMEE_HOST;
+
   api
     .command("login")
-    .description("Authenticate to a Drumee instance and cache the token")
-    .requiredOption("--host <url>", "instance host (e.g. drumee.in)")
+    .description("Authenticate to a Drumee instance and cache the token (--host required)")
     .option("--email <email>", "account email (with --password)")
     .option("--password <password>", "account password (with --email)")
     .option("--token <token>", "use a pre-issued token instead of email/password")
     .action(
       run(async (opts) => {
+        const host = resolveHost();
+        if (!host) throw new Error("pass --host <url> (e.g. https://drumee.in/-/somanos/)");
         let token = opts.token;
         if (!token) {
           if (!opts.email || !opts.password) {
             throw new Error("provide --token, or both --email and --password");
           }
-          const client = new ApiClient({ host: opts.host });
+          const client = new ApiClient({ host });
           const authorization =
             "Basic " + Buffer.from(`${opts.email}:${opts.password}`).toString("base64");
           const data = await client.call("authn.create", {}, { authorization });
           token = data && data.token;
           if (!token) throw new Error("login failed: no token returned by authn.create");
         }
-        config.save({ host: opts.host, token });
-        return {
-          host: opts.host,
-          token: `${String(token).slice(0, 4)}…`,
-          saved: config.FILE,
-        };
+        config.save({ host, token });
+        return { host, token: `${String(token).slice(0, 4)}…`, saved: config.FILE };
       })
     );
 
@@ -85,11 +86,10 @@ module.exports = function registerApi(program, ctx) {
     .description("Call a service (module.method) and print the result")
     .option("--data <json>", "JSON request payload", "{}")
     .option("--get", "use a GET request instead of POST", false)
-    .option("--host <url>", "override the configured host")
     .action(
       run(async (opts, service) => {
         const cfg = config.load();
-        const host = opts.host || process.env.DRUMEE_HOST || cfg.host;
+        const host = resolveHost() || cfg.host;
         const token = process.env.DRUMEE_TOKEN || cfg.token;
         const client = new ApiClient({
           host,

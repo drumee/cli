@@ -30,7 +30,7 @@ drumee [global options] <group> <command> [options]
 |---|---|---|
 | `--backend <db\|api>` | `db` | Transport. `db` = direct MariaDB; `api` = remote service API (transport ready; per-resource mappings in progress). |
 | `--domain <id>` | `1` | Domain id to scope operations to. |
-| `--host <url>` | — | Remote host for `--backend api` (or `DRUMEE_HOST`). |
+| `--host <url>` | — | Endpoint base for `--backend api`, e.g. `https://drumee.in/-/somanos/` — `svc/` is appended (or `DRUMEE_HOST`). |
 | `--token <token>` | — | Auth token for `--backend api` (or `DRUMEE_TOKEN`). |
 | `--json` | off | Emit raw JSON instead of formatted tables. |
 | `--verbose` | off | Verbose logging / full stack traces on error. |

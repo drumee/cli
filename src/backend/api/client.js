@@ -27,12 +27,17 @@ class ApiClient {
     this.verbose = verbose;
   }
 
-  /** "drumee.in" | "https://drumee.in" | ".../-/svc" → "https://drumee.in/-/svc/" */
+  /**
+   * Append the `svc/` segment to the endpoint base the caller provides.
+   * The endpoint path is instance-specific (multi-tenant), e.g.
+   * `https://drumee.in/-/somanos/` → `https://drumee.in/-/somanos/svc/`.
+   * A value already ending in `/svc` is accepted as-is.
+   */
   static normalizeBase(host) {
     let h = String(host).trim();
     if (!/^https?:\/\//.test(h)) h = `https://${h}`;
     h = h.replace(/\/+$/, "");
-    if (!/\/-\/svc$/.test(h)) h = `${h}/-/svc`;
+    if (!/\/svc$/.test(h)) h = `${h}/svc`;
     return `${h}/`;
   }
 
@@ -81,15 +86,21 @@ class ApiClient {
       /* non-JSON or empty body */
     }
 
-    if (res.status !== 200) {
-      const msg = (body && (body.error?.message || body.error || body.message)) || `HTTP ${res.status}`;
-      const err = new Error(`${service}: ${msg}`);
-      err.status = res.status;
-      err.body = body;
-      throw err;
-    }
-    if (body && body.error) {
-      const err = new Error(`${service}: ${body.error.message || body.error}`);
+    // Errors arrive either as a non-200 status, or (commonly) as HTTP 200 with a
+    // top-level `error` string plus `reason`/`error_code` in the envelope.
+    const errored =
+      res.status >= 400 ||
+      (body && (body.error || (body.status && body.status >= 400)));
+    if (errored) {
+      const base =
+        (body &&
+          (typeof body.error === "string"
+            ? body.error
+            : body.error?.message || body.message)) ||
+        `HTTP ${res.status}`;
+      const reason = body && body.reason ? ` (${body.reason})` : "";
+      const err = new Error(`${base}${reason}`);
+      err.status = (body && (body.error_code || body.status)) || res.status;
       err.body = body;
       throw err;
     }

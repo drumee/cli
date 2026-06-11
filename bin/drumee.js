@@ -25,7 +25,7 @@ program
   // Global options shared by every command group.
   .option("--backend <kind>", "backend to talk to: db | api", "db")
   .option("--domain <id>", "domain id to scope operations to", "1")
-  .option("--host <url>", "remote host for --backend api (or DRUMEE_HOST)")
+  .option("--host <url>", "endpoint base for --backend api, e.g. https://drumee.in/-/somanos/ — `svc/` is appended (or DRUMEE_HOST)")
   .option("--token <token>", "auth token for --backend api (or DRUMEE_TOKEN)")
   .option("--json", "output raw JSON instead of formatted tables", false)
   .option("--verbose", "verbose logging", false);
