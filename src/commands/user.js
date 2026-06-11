@@ -9,6 +9,8 @@ module.exports = function registerUser(program, ctx) {
     .description("List users")
     .option("--email <pattern>", "filter by email (SQL LIKE pattern)")
     .option("--category <category>", "filter by profile category")
+    .option("--verbose", "also show db_name, home_id and home_dir")
+    // runner() already folds the global --verbose into opts.verbose.
     .action(ctx.runner((backend, opts) => backend.user.list(opts)));
 
   user
@@ -26,15 +28,29 @@ module.exports = function registerUser(program, ctx) {
 
   user
     .command("add")
-    .description("Create a user (planned)")
-    .option("--email <email>", "user email")
+    .description("Create a user (drumate)")
+    .requiredOption("--email <email>", "user email")
     .option("--firstname <name>", "first name")
     .option("--lastname <name>", "last name")
-    .option("--password <password>", "initial password")
+    .option("--username <name>", "username (derived from name/email if omitted)")
+    .option("--domain <domain>", "domain name (defaults to the instance domain)")
+    .option("--lang <lang>", "language", "en")
+    .option("--category <category>", "profile category")
+    .option("--privilege <n>", "domain privilege level")
+    .option("--password <password>", "initial password (random if omitted)")
     .action(ctx.runner((backend, opts) => backend.user.add(opts)));
 
   user
     .command("update <key>")
-    .description("Update a user (planned)")
+    .description("Update a user's fields (by id or email)")
+    .option("--firstname <name>", "first name")
+    .option("--lastname <name>", "last name")
+    .option("--username <name>", "username")
+    .option("--email <email>", "email address")
+    .option("--mobile <mobile>", "mobile number")
+    .option("--lang <lang>", "language")
+    .option("--category <category>", "profile category")
+    .option("--quota <bytes>", "storage quota")
+    .option("--password <password>", "new password")
     .action(ctx.runner((backend, opts, key) => backend.user.update(key, opts)));
 };

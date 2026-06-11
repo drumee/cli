@@ -42,19 +42,36 @@ class Context {
     return async (...args) => {
       // commander passes (…positionalArgs, options, command). We forward the
       // command's options object (second-to-last arg) and the positional args.
-      const command = args[args.length - 1];
       const options = args[args.length - 2];
       const positionals = args.slice(0, args.length - 2);
+      // Resolve verbosity once: a command's own --verbose OR the global flag.
+      if (options && typeof options === "object") {
+        options.verbose = options.verbose || this.opts.verbose || false;
+      }
       try {
         const backend = await this.backend();
         const result = await fn(backend, options, ...positionals);
         if (result !== undefined) this.output(result);
         await this.close();
-        process.exit(0);
+        await this._exit(0);
       } catch (err) {
         await this.fail(err);
       }
     };
+  }
+
+  /** Wait for stdout/stderr to drain, then exit — avoids truncating piped output. */
+  async _exit(code) {
+    await Promise.all(
+      [process.stdout, process.stderr].map(
+        (s) =>
+          new Promise((resolve) => {
+            if (s.writableLength === 0) resolve();
+            else s.once("drain", resolve);
+          })
+      )
+    );
+    process.exit(code);
   }
 
   /** Render a result respecting the global --json flag. */
@@ -78,7 +95,7 @@ class Context {
     } catch (_) {
       /* ignore close errors during failure */
     }
-    process.exit(1);
+    await this._exit(1);
   }
 }
 

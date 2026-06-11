@@ -9,7 +9,9 @@ const { MfsStore } = require("./mfs");
  * Connects to the central `yp` (Yellow Pages) database as the current system
  * user — the same bootstrap @drumee/shell and @drumee/setup-schemas use — and
  * routes per-entity operations to the right shard by prefixing the resolved
- * `db_name` onto the procedure call (e.g. `9_ab12….show_hubs`).
+ * `db_name` onto the procedure call (e.g. `<x>_ab12….show_hubs`). The leading
+ * `<x>_` is an arbitrary bucket character, not a type marker — never infer an
+ * entity's type from its db_name.
  *
  * All data access goes through stored procedures or read-only lookups; no
  * business logic is duplicated in raw SQL beyond simple SELECTs.
@@ -30,8 +32,11 @@ class DbBackend {
   async connect() {
     // Lazy-require so `--help` and arg errors never load server-essentials
     // (which logs runtime/UI probes at require time).
-    const { Mariadb, Cache, sysEnv, toArray } = require("@drumee/server-essentials");
+    const { Mariadb, Cache, sysEnv, toArray, uniqueId } = require("@drumee/server-essentials");
+    this.Mariadb = Mariadb;
     this.toArray = toArray;
+    this.uniqueId = uniqueId;
+    this.Cache = Cache;
     this.env = sysEnv();
     this.mfsDir = this.env.mfs_dir;
     this.yp = new Mariadb({ name: "yp", user: process.env.USER, idleTimeout: 60 });
@@ -60,9 +65,9 @@ class DbBackend {
     return this.yp.await_proc(name, ...args);
   }
 
-  /** Call a stored function in the `yp` database. */
-  func(name, ...args) {
-    return this.yp.await_func(name, ...args);
+  /** First row of a query/proc result (handles array or single-object shapes). */
+  firstRow(out) {
+    return Array.isArray(out) ? out[0] ?? null : out ?? null;
   }
 
   /**
@@ -70,29 +75,31 @@ class DbBackend {
    * Returns null when the entity is unknown.
    */
   async dbName(key) {
-    const rows = await this.query(
-      "SELECT db_name FROM entity WHERE id = ? OR ident = ? LIMIT 1",
-      key,
-      key
+    const row = this.firstRow(
+      await this.query(
+        "SELECT db_name FROM entity WHERE id = ? OR ident = ? LIMIT 1",
+        key,
+        key
+      )
     );
-    const row = Array.isArray(rows) ? rows[0] : rows;
     return row ? row.db_name : null;
   }
 
-  /** Call a procedure inside a specific entity shard database. */
-  async procIn(key, name, ...args) {
-    const db = await this.dbName(key);
-    if (!db) throw new Error(`Unknown entity: ${key}`);
-    return this.yp.await_proc(`${db}.${name}`, ...args);
+  /**
+   * Open a dedicated connection to an entity's shard database. The caller must
+   * `await conn.stop()` when done. Used by MFS import/export, which run
+   * procedures that rely on the active database context (and OUT params).
+   */
+  entityConn(dbName) {
+    if (!this.Mariadb) throw new Error("backend is not connected");
+    return new this.Mariadb({ name: dbName });
   }
 
   /** The recorded storage root (`home_dir`) of an entity, or null. */
   async entityHomeDir(id) {
-    const rows = await this.query(
-      "SELECT home_dir FROM entity WHERE id = ? LIMIT 1",
-      id
+    const row = this.firstRow(
+      await this.query("SELECT home_dir FROM entity WHERE id = ? LIMIT 1", id)
     );
-    const row = Array.isArray(rows) ? rows[0] : rows;
     return row ? row.home_dir : null;
   }
 

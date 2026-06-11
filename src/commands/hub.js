@@ -30,8 +30,12 @@ module.exports = function registerHub(program, ctx) {
 
   hub
     .command("create")
-    .description("Create a hub (planned)")
-    .option("--name <name>", "hub name")
-    .option("--owner <key>", "owning user (id/email)")
+    .description("Create a hub owned by a user")
+    .requiredOption("--name <name>", "hub display name")
+    .requiredOption("--owner <key>", "owning user (id/email)")
+    .option("--area <area>", "visibility: private | restricted | public", "private")
+    .option("--domain <domain>", "domain name (defaults to the owner's domain)")
+    .option("--description <text>", "hub description")
+    .option("--keywords <text>", "hub keywords")
     .action(ctx.runner((backend, opts) => backend.hub.create(opts)));
 };
