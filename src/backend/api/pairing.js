@@ -30,10 +30,14 @@ function openBrowser(url) {
   }
 }
 
-/** In-app authorize URL from the endpoint base + user_code (SPA hash route). */
+/**
+ * In-app authorize URL from the endpoint base + user_code. Points at the
+ * `@drumee/authorize` UI-plugin, onboarded via the frontend plugin route
+ * (`#/plugins?name=authorize&kind=authorize&code=…`).
+ */
 function verifyUrl(host, userCode) {
   const base = String(host).replace(/\/+$/, "/");
-  return `${base}#/authorize?code=${encodeURIComponent(userCode)}`;
+  return `${base}#/plugins?name=authorize&kind=authorize&code=${encodeURIComponent(userCode)}`;
 }
 
 /**
